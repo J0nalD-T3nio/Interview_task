@@ -1,2 +1,2 @@
-This is a project created for the technical assessment in the company
-Elinnov Technologies INC.
+This is a project created for the technical assessment on the company
+Elinnov Technologies Inc. for the internship role.

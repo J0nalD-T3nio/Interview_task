@@ -2,6 +2,7 @@
 
 import math
 import tkinter as tk
+from tkinter import messagebox
 from functools import lru_cache
 from typing import Callable
 from tooltip import Tooltip
@@ -21,7 +22,9 @@ class Interface:
             button2_text (str): The text inside the second button.
                                 Default value is Button 1.
             button1_description (str): Description of button 1's functionality
+                                       A default value is present. 
             button2_description (str): Description of button 2's functionality
+                                       A default value is present.
     """
     def __init__(self,
                  root: tk.Tk,
@@ -74,12 +77,14 @@ class Interface:
                               sticky="nsew"
                               )
 
+        # Button 1 is for the factorial operation
         self.button1: tk.Button = self.create_button(self.button1_text_var,
                                           1, 0,
                                           self.button1_action,
                                           self.button1_description
                                           )
 
+        # Button 2 is for the Prime checker operation
         self.button2: tk.Button = self.create_button(self.button2_text_var,
                                           1, 1,
                                           self.button2_action,
@@ -123,17 +128,72 @@ class Interface:
 
     def button1_action(self) -> None:
         """
-            Summary:
-                Action for Button 1
+            Summary: 
+                Action for Factorial Button
         """
-        print(f"{self.button1_text_var.get()} clicked")
+        self.create_input_window("Factorial Calculator", self.calculate_factorial)
 
     def button2_action(self) -> None:
         """
-            Summary:
-                Action for Button 2
+            Summary: 
+                Action for Prime Check Button
         """
-        print(f"{self.button2_text_var.get()} clicked")
+        self.create_input_window("Prime Number Checker", self.check_prime)
+
+    def create_input_window(self, title: str, action_function: callable) -> None:
+        """
+            Summary: 
+                Create a new window for input and result display
+            
+            Args:
+                title (str): The title of the window
+                action_function (callable): The functionality the window will do
+        """
+        # Hide the main window
+        self.root.withdraw()
+
+        input_window = tk.Toplevel(self.root)
+        input_window.title(title)
+        input_window.geometry("300x200")
+        input_window.protocol("WM_DELETE_WINDOW", lambda: self.close_input_window(input_window))
+
+        label = tk.Label(input_window, text="Enter a number:")
+        label.pack(pady=5)
+
+        entry = tk.Entry(input_window)
+        entry.insert(0, "Enter number here")
+        entry.pack(pady=5)
+        entry.bind("<FocusIn>", lambda args: entry.delete('0', 'end'))
+
+        result_var = tk.StringVar()
+        result_label = tk.Label(input_window, textvariable=result_var, wraplength=250)
+        result_label.pack(pady=10)
+
+        def process_input():
+            try:
+                number = int(entry.get())
+                result = action_function(number)
+                result_var.set(result)
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid integer")
+
+        calculate_button = tk.Button(input_window, text="Calculate", command=process_input)
+        calculate_button.pack(pady=5)
+
+        entry.bind("<Return>", lambda event: process_input())
+
+    def close_input_window(self, window: tk.Toplevel) -> None:
+        """
+            Summary:
+                Close the input window and show the main window
+            
+            Args:
+                window (tk.Toplevel): The current window that will be closed
+        """
+        window.destroy()
+
+        # Show the main window
+        self.root.deiconify()
 
     def on_resize(self, event: tk.Event) -> None:
         """
@@ -163,6 +223,35 @@ class Interface:
                 The method for running the instance of the interface.
         """
         self.root.mainloop()
+
+    def calculate_factorial(self, number: int) -> str:
+        """
+            Summary: 
+                Calculate factorial and return result string
+
+            Args:
+                number (int): The given number
+        """
+        try:
+            result = Interface.factorial(number)  # Use class name instead of self
+            return f"The factorial of {number} is {result}"
+        except ValueError as e:
+            return str(e)
+
+    def check_prime(self, number: int) -> str:
+        """
+            Summary: 
+                Check if number is prime and return result string
+
+            Args:
+                number (int): The given number
+        """
+        try:
+            is_prime = Interface.is_prime(number)  # Use class name instead of self
+            prime_status = "a Prime" if is_prime else "Not a Prime"
+            return f"{number} is {prime_status} Number"
+        except ValueError as e:
+            return str(e)
 
     @staticmethod
     @lru_cache(maxsize=None)

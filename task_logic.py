@@ -1,30 +1,58 @@
-""" The module(Not runnable)  for the Interface class and its methods"""
+""" The module(Not runnable)  for the Interface class and its methods """
+
+import math
 import tkinter as tk
+from functools import lru_cache
 from typing import Callable
+from tooltip import Tooltip
 
 class Interface:
     """
         Summary:
             The interface class for the graphical user interface of the program.
             
-        Args:
-            root (tkinter): The instance of a tkinter window
-            title (str): An optional argument for setting the title of the window
+        Attributes:
+            root (tkinter): The instance of a tkinter window.
+            window_title (str or None): An optional argument for setting the title of the .
+            main_title (str): The text label of the main window.
+                              Default value is Main Window.
+            button1_text (str): The text inside the first button.
+                                Default value is Button 1.
+            button2_text (str): The text inside the second button.
+                                Default value is Button 1.
+            button1_description (str): Description of button 1's functionality
+            button2_description (str): Description of button 2's functionality
     """
     def __init__(self,
                  root: tk.Tk,
-                 title: str | None = None
-                ) -> None:
-        self.root = root
+                 window_title: str | None = None,
+                 main_title: str = "Main Window",
+                 button1_text: str = "Button 1",
+                 button2_text: str = "Button 2",
+                 button1_description: str = "Calculates the factorial of n.",
+                 button2_description: str = "Checks if the number is prime."
+                 ) -> None:
+        self.root: tk.Tk = root
+        self.main_title_var: tk.StringVar = tk.StringVar(self.root, main_title)
+        self.button1_text_var: tk.StringVar = tk.StringVar(self.root, button1_text)
+        self.button2_text_var: tk.StringVar = tk.StringVar(self.root, button2_text)
+        self.button1_description: str = button1_description
+        self.button2_description: str = button2_description
 
-        #Set the title
-        if title is not None:
-            self.root.title(title)
+        if window_title is not None:
+            self.root.title(window_title)
 
-        #Set initial window size
+        # Set initial window size
         self.root.geometry("300x200")
 
+        # Set initial font size
+        self.title_font_size: int = 16
+        self.button_font_size: int = 12
+
+        # Setup for the user interface to be dynamic
         self.setup_ui()
+        self.root.bind("<Configure>", self.on_resize)
+
 
     def setup_ui(self) -> None:
         """
@@ -36,64 +64,154 @@ class Interface:
         self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_rowconfigure(2, weight=1)
 
-        title_label = tk.Label(self.root, text="Main Window", font=("Arial", 16))
-        title_label.grid(row=0, column=0, columnspan=2, pady=10)
+        self.title_label: tk.Label = tk.Label(self.root,
+                                    textvariable=self.main_title_var,
+                                    font=("Arial", self.title_font_size)
+                                    )
 
-        self.create_button("Button 1", 1, 0, self.button1_action)
-        self.create_button("Button 2", 1, 1, self.button2_action)
+        self.title_label.grid(row=0, column=0,
+                              columnspan=2, pady=10,
+                              sticky="nsew"
+                              )
 
-    def create_button(self, text: str, row: int, column: int, command: Callable[[], None]) -> None:
+        self.button1: tk.Button = self.create_button(self.button1_text_var,
+                                          1, 0,
+                                          self.button1_action,
+                                          self.button1_description
+                                          )
+
+        self.button2: tk.Button = self.create_button(self.button2_text_var,
+                                          1, 1,
+                                          self.button2_action,
+                                          self.button2_description
+                                          )
+
+    def create_button(self, text_var: tk.StringVar,
+                      row: int, column: int,
+                      command: Callable[[], None],
+                      description: str
+                      ) -> tk.Button:
         """
             Summary:
-                Create a button with the given parameters
+                Create a button with the given parameters.
         
             Args:
-                text (str): The text to be displayed on the button
-                row (int): The row of the button
-                column (int): The column of the button
+                text (str): The text to be displayed on the button.
+                row (int): The row of the button.
+                column (int): The column of the button.
                 command (button action/event): The action that will
-                                                be performed when a button is clicked
+                                                be performed when a button is clicked.
+                description (str): The description to be shown on the tooltip.
+
+            Returns:
+                tk.Button: Returns a dynamic and scalable tkinter button widget
         """
-        button = tk.Button(self.root, text=text, command=command)
-        button.grid(row=row, column=column, padx=10, pady=10, sticky="nsew")
+        button: tk.Button = tk.Button(self.root,
+                           textvariable=text_var,
+                           command=command,
+                           font=("Arial", self.button_font_size)
+                           )
+
+        button.grid(row=row, column=column,
+                    padx=10, pady=10,
+                    sticky="nsew")
+
+        # Add tooltip to the button
+        Tooltip(button, description)
+
+        return button
 
     def button1_action(self) -> None:
-        """Action for Button 1"""
-        print("Button 1 clicked")
+        """
+            Summary:
+                Action for Button 1
+        """
+        print(f"{self.button1_text_var.get()} clicked")
 
     def button2_action(self) -> None:
-        """Action for Button 2"""
-        print("Button 2 clicked")
+        """
+            Summary:
+                Action for Button 2
+        """
+        print(f"{self.button2_text_var.get()} clicked")
+
+    def on_resize(self, event: tk.Event) -> None:
+        """
+            Summary:
+                Adjust font sizes based on window size.
+                
+            Args:
+                event (tk.Event): 
+                    represents event that occurs in the GUI,
+                    such as a mouse click, key press, or 
+                    window resize. This is binded so that
+                    when the window resizes the texts also
+                    resizes.
+        """
+        # Adjust title font size
+        new_title_size = max(16, min(32, event.width // 20, event.height // 10))
+        self.title_label.config(font=("Arial", new_title_size))
+
+        # Adjust button font size
+        new_button_size = max(10, min(24, event.width // 30, event.height // 15))
+        self.button1.config(font=("Arial", new_button_size))
+        self.button2.config(font=("Arial", new_button_size))
 
     def run(self) -> None:
         """
             Summary: 
-                The method for running the instance of the interface
+                The method for running the instance of the interface.
         """
         self.root.mainloop()
 
-    def factorial(self, number: int) -> int:
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def factorial(number: int) -> int:
         """
         Summary:
             The method for finding the factorial of a given number.
 
         Args:
-            number (int): The number to calculate the factorial of
+            number (int): The number to calculate the factorial.
 
         Returns:
-            int: The result of the n! formula
+            int: The result of the n! formula.
         """
-        pass
+        if number < 0:
+            raise ValueError("Factorial only works with none negative numbers")
 
-    def is_prime(self, number: int) -> bool:
+        if number in (0, 1):
+            return 1
+        return number * Interface.factorial(number - 1)
+
+    @staticmethod
+    def is_prime(number: int) -> bool:
         """
         Summary:
             The method for checking whether a given number is prime.
 
         Args:
-            number (int): The number to check for primality
+            number (int): The number to check for primality.
 
         Returns:
-            bool: True if the number is prime, otherwise false
+            bool: True if the number is prime, otherwise false.
         """
-        pass
+        if number < 0:
+            raise ValueError(
+                "Prime number checking is not traditionaly used in none negative numbers"
+                )
+
+        if number in (0, 1):
+            return False
+
+        if number in (2, 3):
+            return True
+
+        if number%2 == 0 or number%3 == 0:
+            return False
+
+        # Check up to the square root of the number
+        for i in range(5, int(math.sqrt(number)) + 1, 6):
+            if number % i == 0 or number % (i + 2) == 0:
+                return False
+        return True
